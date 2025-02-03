@@ -2,71 +2,46 @@
 # -*- coding: utf-8 -*-
 
 import json
-import networkx as nx
 import matplotlib.pyplot as plt
 import sys
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python visualize_graph.py <json_file>")
+        print("Usage: python visualize_bar_chart.py <json_file>")
         sys.exit(1)
 
     json_file = sys.argv[1]
     with open(json_file, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # 全ての発言者（ノード）を収集
-    speakers = set()
-    for category in ["questions", "agreements", "negative_questions"]:
-        for speaker, targets in data.get(category, {}).items():
-            speakers.add(speaker)
-            speakers.update(targets.keys())
+    # 各カテゴリーごとの発話回数を集計
+    categories = ["questions", "agreements", "negative_questions"]
+    category_counts = {category: 0 for category in categories}
 
-    # 有向マルチグラフを作成
-    G = nx.MultiDiGraph()
-    G.add_nodes_from(speakers)
-
-    # 各種相互作用をエッジとして追加（重み＝回数）
-    for category in ["questions", "agreements", "negative_questions"]:
+    for category in categories:
         for speaker, targets in data.get(category, {}).items():
             for target, count in targets.items():
-                G.add_edge(speaker, target, interaction=category, weight=count)
+                category_counts[category] += count
 
-    # ノード配置を計算（spring layout）
-    pos = nx.spring_layout(G, seed=42)
+    # 棒グラフの作成
+    fig, ax = plt.subplots(figsize=(8, 6))
+    colors = {"questions": "red", "agreements": "green", "negative_questions": "blue"}
+    bars = ax.bar(category_counts.keys(), category_counts.values(),
+                  color=[colors[cat] for cat in categories])
+    
+    ax.set_xlabel("相互作用の種類")
+    ax.set_ylabel("発話回数"
+    ax.set_title("議論における発言者間の相互作用（合計）")
 
-    plt.figure(figsize=(10, 8))
-    # ノード描画
-    nx.draw_networkx_nodes(G, pos, node_size=1500, node_color="lightyellow", edgecolors="black")
-    nx.draw_networkx_labels(G, pos, font_size=12)
+    # 棒に回数を表示
+    for bar in bars:
+        height = bar.get_height()
+        ax.annotate(f"{int(height)}",
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha="center", va="bottom")
 
-    # カテゴリごとにエッジの色分け
-    colors = {
-        "questions": "red",
-        "agreements": "green",
-        "negative_questions": "blue"
-    }
-
-    # 各カテゴリのエッジを描画
-    for category, color in colors.items():
-        edges = [(u, v, d) for u, v, d in G.edges(data=True) if d.get("interaction") == category]
-        if edges:
-            nx.draw_networkx_edges(
-                G, pos,
-                edgelist=[(u, v) for u, v, d in edges],
-                arrowstyle="->",
-                arrowsize=20,
-                edge_color=color,
-                width=2,
-                label=category
-            )
-            # エッジラベルとして「発話回数」を表示
-            edge_labels = {(u, v): d.get("weight", 1) for u, v, d in edges}
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color=color)
-
-    plt.title("議論における発言者間の相互作用")
-    plt.axis("off")
-    plt.legend(loc="upper right")
     plt.tight_layout()
     plt.show()
 

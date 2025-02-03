@@ -5,6 +5,7 @@ import openai
 import json
 import sys
 import os
+import re
 from dotenv import load_dotenv
 
 # .env ファイルを読み込む（デフォルトではカレントディレクトリの .env ファイルが対象）
@@ -25,7 +26,6 @@ def main():
     with open(input_file, "r", encoding="utf-8") as f:
         conversation = f.read()
 
-    # 以下のプロンプトでは、議論スクリプトから各種相互作用を抽出するようGPTに依頼しています
     prompt = f"""
 以下は発言者ラベル付きの議論スクリプトです（各行は "Speaker: 発言内容" の形式です）。
 この議論から以下の情報を抽出してください。
@@ -66,10 +66,10 @@ def main():
 
 {conversation}
 """
-
+    #GPT4oで分析
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "あなたは議論分析に優れたアシスタントです。"},
                 {"role": "user", "content": prompt}
@@ -82,16 +82,23 @@ def main():
 
     result_text = response.choices[0].message["content"]
     
+    #正規表現でJSON部分を抽出
+    pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
+    match = re.search(pattern, result_text)
+    if match:
+        json_code = match.group(1)
+    else:
+        json_code = result_text
+    result_text = json_code
+    
     lines = result_text.strip().splitlines()
     
     # 最初の行が ``` または ```json なら削除
     if lines and lines[0].startswith("```"):
         lines = lines[1:]
-    # 最後の行が ``` なら削除
     if lines and lines[-1].startswith("```"):
         lines = lines[:-1]
     
-    # 改行を戻して結合
     result_text = "\n".join(lines)
     
     print("=== 抽出結果 ===")
