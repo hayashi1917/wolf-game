@@ -49,18 +49,12 @@ Python の仮想環境を作成し、有効化します。
 以下のコマンドで必要なライブラリをインストールします。
 
 ```bash
-pip install openai python-dotenv matplotlib networkx
+ pip install -r requirements.txt
 ```
 
 ### 5. プロジェクトファイルの配置
 
 以下のファイルをプロジェクトディレクトリ内に用意してください。
-
-- **analyze_discussion.py**  
-  議論スクリプトを解析して JSON 形式のデータを出力するためのスクリプト。
-
-- **visualize_graph.py**  
-  解析結果（JSON データ）から発言者間の相互作用をグラフ化するためのスクリプト。
 
 - **.env**  
   OpenAI API キーを管理するためのファイル。例として、以下のように記述します。
